@@ -1,0 +1,94 @@
+# macOS
+.DS_Store
+*.swp
+*.lock
+*.tmp
+
+# Xcode / iOS
+build/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+*.xccheckout
+*.moved-aside
+DerivedData/
+*.hmap
+*.ipa
+*.xcuserstate
+**/.xcode.env.local
+
+# Android / IntelliJ
+build/
+.idea/
+.gradle/
+local.properties
+*.iml
+*.hprof
+.cxx/
+*.keystore
+!debug.keystore
+.kotlin/
+captures/
+output.json
+
+# Node.js / React Native
+node_modules/
+npm-debug.log*
+yarn-error.log*
+*.log
+*.tsbuildinfo
+# Uncomment next line if you want to ignore package-lock.json
+# package-lock.json
+
+# Metro / React Native Bundler
+.bundle/
+.expo/
+dist/
+*.jsbundle
+.metro-health-check*
+
+# Ruby / CocoaPods
+**/Pods/
+vendor/bundle/
+
+# Testing
+/coverage
+/junit.xml
+/test-report.xml
+
+# Fastlane
+**/fastlane/report.xml
+**/fastlane/Preview.html
+**/fastlane/screenshots
+**/fastlane/test_output
+
+# Yarn Berry (v2+)
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# VSCode / IDEs
+.vscode/
+*.code-workspace
+
+# OS / System files
+Thumbs.db
+ehthumbs.db
+Icon?
+Desktop.ini
+
+# Misc
+.env
+.env.local
+.env.*
+!env.example
+.git_disabled/

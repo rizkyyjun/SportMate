@@ -1,0 +1,15 @@
+{
+  "devDependencies": {
+    "@react-native-community/cli": "^20.0.2",
+    "@types/dotenv": "^6.1.1",
+    "@types/react-native-modern-datepicker": "^1.0.5",
+    "babel-preset-expo": "^54.0.0"
+  },
+  "dependencies": {
+    "@react-native-picker/picker": "^2.11.2",
+    "date-fns": "^4.1.0",
+    "expo": "^54.0.2",
+    "react-native-modern-datepicker": "^1.0.0-beta.91",
+    "socket.io-client": "^4.8.1"
+  }
+}
