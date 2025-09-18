@@ -18,6 +18,7 @@ export type RootStackParamList = {
   TeammateRequest: undefined;
   NewChat: undefined;
   CreateFieldScreen: undefined; // Added for the new feature
+  EditProfile: undefined;
 };
 
 export type MainTabParamList = {

@@ -50,3 +50,25 @@ export const getUserById = async (req: Request, res: Response, next: NextFunctio
     next(error);
   }
 };
+
+// Update user profile
+export const updateUserProfile = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { name, profilePicture } = req.body;
+    const userId = req.user!.id;
+
+    const user = await userRepository.findOne({ where: { id: userId } });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.name = name || user.name;
+    user.profilePicture = profilePicture || user.profilePicture;
+
+    await userRepository.save(user);
+    res.json(user);
+  } catch (error) {
+    next(error);
+  }
+};

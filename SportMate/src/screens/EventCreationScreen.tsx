@@ -17,24 +17,9 @@ import { useAuth } from '../hooks/useAuth';
 import { eventService } from '../services/event.service';
 import { fieldService } from '../services/field.service';
 import { format } from 'date-fns';
-import { Calendar, LocaleConfig } from 'react-native-calendars';
-import { Picker } from '@react-native-picker/picker';
+import { Picker } from '@react-native-picker/picker'; // Keep Picker
 
-/* --- Force English locale for Calendar --- */
-LocaleConfig.locales['en'] = {
-  monthNames: [
-    'January','February','March','April','May','June',
-    'July','August','September','October','November','December'
-  ],
-  monthNamesShort: [
-    'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'
-  ],
-  dayNames: [
-    'Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'
-  ],
-  dayNamesShort: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
-};
-LocaleConfig.defaultLocale = 'en';
+// Removed Calendar and LocaleConfig as it's causing crashes
 
 type EventCreationScreenProps = {
   navigation: StackNavigationProp<RootStackParamList, 'EventCreation'>;
@@ -103,7 +88,18 @@ const EventCreationScreen: React.FC<EventCreationScreenProps> = ({ navigation })
         description,
       });
 
+      console.log('Event created successfully:', {
+        title: name,
+        sport,
+        location,
+        fieldId: selectedFieldId,
+        dateTime,
+        maxParticipants: parsedMaxParticipants,
+        description,
+      });
+
       navigation.goBack();
+
     } catch (err: any) {
       console.error('Failed to create event:', err);
       setError(err.message || 'Failed to create event. Please try again.');
@@ -112,22 +108,26 @@ const EventCreationScreen: React.FC<EventCreationScreenProps> = ({ navigation })
     }
   };
 
-  const markedDates = useMemo(() => ({
-    [date]: {
-      selected: true,
-      selectedColor: '#0066cc',
-    },
-  }), [date]);
+  // Removed markedDates as Calendar is removed
+  // const markedDates = useMemo(() => {
+  //   return {
+  //     [date]: {
+  //       selected: true,
+  //       selectedColor: '#0066cc',
+  //       selectedTextColor: '#fff',
+  //     },
+  //   };
+  // }, [date]);
 
   const formFields = [
     { key: 'name', label: 'Event Name', placeholder: 'Enter event name', value: name, setter: setName },
     { key: 'sport', label: 'Sport', placeholder: 'e.g., Soccer, Basketball, Tennis', value: sport, setter: setSport },
     { key: 'location', label: 'Location', placeholder: 'Enter location', value: location, setter: setLocation },
     { key: 'field', label: 'Field' },
-    { key: 'date', label: 'Date' },
+    { key: 'date', label: 'Date', placeholder: 'YYYY-MM-DD', value: date, setter: setDate, type: 'text' }, // Changed to TextInput
     { key: 'time', label: 'Time', placeholder: 'HH:MM', value: time, setter: setTime },
     { key: 'maxParticipants', label: 'Maximum Participants', placeholder: 'Enter maximum number of participants', value: maxParticipants, setter: setMaxParticipants, keyboardType: 'numeric' },
-    { key: 'description', label: 'Description', placeholder: 'Describe your event...', value: description, setter: setDescription, multiline: true },
+    { key: 'description', 'label': 'Description', placeholder: 'Describe your event...', value: description, setter: setDescription, multiline: true },
   ];
 
   const renderItem = useCallback(({ item }: { item: any }) => {
@@ -146,29 +146,6 @@ const EventCreationScreen: React.FC<EventCreationScreenProps> = ({ navigation })
               ))}
             </Picker>
           </View>
-        ) : item.key === 'date' ? (
-          <Calendar
-            current={date}
-            minDate={format(new Date(), 'yyyy-MM-dd')}
-            onDayPress={(day) => {
-              setDate(day.dateString);
-              setError(null);
-            }}
-            markedDates={markedDates}
-            monthFormat={'MMMM yyyy'}
-            hideExtraDays={true}
-            theme={{
-              backgroundColor: '#fff',
-              calendarBackground: '#fff',
-              textSectionTitleColor: '#000',
-              selectedDayBackgroundColor: '#0066cc',
-              selectedDayTextColor: '#ffffff',
-              todayTextColor: '#0066cc',
-              dayTextColor: '#2d4150',
-              textDisabledColor: '#d9d9d9',
-            }}
-            style={styles.calendar}
-          />
         ) : (
           <TextInput
             style={[styles.input, item.multiline && styles.textArea]}
@@ -182,7 +159,7 @@ const EventCreationScreen: React.FC<EventCreationScreenProps> = ({ navigation })
         )}
       </View>
     );
-  }, [selectedFieldId, fields, date, markedDates, name, sport, location, time, maxParticipants, description]);
+  }, [selectedFieldId, fields, date, name, sport, location, time, maxParticipants, description]); // Updated dependencies
 
   return (
     <KeyboardAvoidingView
@@ -242,7 +219,8 @@ const styles = StyleSheet.create({
   disabledButton: { backgroundColor: '#ccc' },
   createButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
   errorText: { color: 'red', textAlign: 'center', marginBottom: 10 },
-  calendar: { borderRadius: 10, marginTop: 10, elevation: 2 },
+  // Removed calendar style
+  // calendar: { borderRadius: 10, marginTop: 10, elevation: 2 },
   pickerContainer: {
     backgroundColor: '#fff',
     borderWidth: 1,

@@ -5,7 +5,7 @@ export const eventService = {
   // Get all events with pagination
   getEvents: async (page: number = 1, limit: number = 10): Promise<{ data: Event[]; total: number; page: number; lastPage: number }> => {
     try {
-      const response = await api.get('/events', { params: { page, limit } });
+      const response = await api.get('/events', { params: { page, limit, relations: ['organizer'] } }); // Include organizer relation
       return response.data;
     } catch (error) {
       console.error('Error fetching events:', error);

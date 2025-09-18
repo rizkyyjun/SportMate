@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,8 +6,10 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/types';
 import { TeammateRequest, TeammateParticipant, ParticipantStatus } from '../types';
 import { useAuth } from '../hooks/useAuth';
@@ -29,9 +31,11 @@ const TeammateDetailsScreen: React.FC<TeammateDetailsScreenProps> = ({
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadRequestDetails();
-  }, [route.params.requestId, user]);
+  useFocusEffect(
+    useCallback(() => {
+      loadRequestDetails();
+    }, [route.params.requestId, user])
+  );
 
   const loadRequestDetails = async () => {
     try {
@@ -102,8 +106,8 @@ const TeammateDetailsScreen: React.FC<TeammateDetailsScreenProps> = ({
   };
 
   const handleNavigateToChat = () => {
-    if (request?.chatRoomId) {
-      navigation.navigate('ChatRoom', { roomId: request.chatRoomId, title: request.sport });
+    if (request?.chatRoom?.id) {
+      navigation.navigate('ChatRoom', { roomId: request.chatRoom.id, title: request.sport });
     } else {
       setError('Chat not available for this request yet.');
     }
@@ -152,8 +156,16 @@ const TeammateDetailsScreen: React.FC<TeammateDetailsScreenProps> = ({
         {request.creator && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Creator Details</Text>
-            <Text style={styles.creatorName}>Name: {request.creator.name}</Text>
-            <Text style={styles.creatorEmail}>Email: {request.creator.email}</Text>
+            <View style={styles.creatorContainer}>
+              <Image
+                source={{ uri: request.creator.profilePicture }}
+                style={styles.creatorImage}
+              />
+              <View>
+                <Text style={styles.creatorName}>Name: {request.creator.name}</Text>
+                <Text style={styles.creatorEmail}>Email: {request.creator.email}</Text>
+              </View>
+            </View>
           </View>
         )}
 
@@ -169,7 +181,11 @@ const TeammateDetailsScreen: React.FC<TeammateDetailsScreenProps> = ({
           ) : (
             request.participants.map((participant) => (
                 <View key={participant.id} style={styles.participant}>
-                <View>
+                <Image
+                  source={{ uri: participant.user.profilePicture }}
+                  style={styles.participantImage}
+                />
+                <View style={styles.participantInfo}>
                   <Text style={styles.participantName}>
                     {participant.user?.name || participant.userId}{' '}
                     <Text style={getParticipantStatusStyle(participant.status)}>
@@ -218,7 +234,7 @@ const TeammateDetailsScreen: React.FC<TeammateDetailsScreenProps> = ({
           </TouchableOpacity>
         )}
 
-        {user && isParticipant && userParticipant?.status === ParticipantStatus.APPROVED && request.chatRoomId && (
+        {(isCreator || (isParticipant && userParticipant?.status === ParticipantStatus.APPROVED)) && request.chatRoom?.id && (
           <TouchableOpacity
             style={styles.chatButton}
             onPress={handleNavigateToChat}
@@ -318,6 +334,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     fontStyle: 'italic',
+  },
+  creatorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  creatorImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 10,
+  },
+  participantImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  participantInfo: {
+    flex: 1,
   },
   status: { // Added base status style
     paddingHorizontal: 8,

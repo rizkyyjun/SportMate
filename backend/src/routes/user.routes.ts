@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.middleware';
-import { getUsers, getUserById } from '../controllers/user.controller';
+import { getUsers, getUserById, updateUserProfile } from '../controllers/user.controller';
 
 const router = Router();
 
@@ -12,5 +12,8 @@ router.get('/', getUsers);
 
 // Get user by ID
 router.get('/:id', getUserById);
+
+// Update user profile
+router.put('/profile', updateUserProfile);
 
 export { router as userRoutes };

@@ -34,6 +34,7 @@ const ChatRoomScreen = () => {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [participants, setParticipants] = useState<User[]>([]);
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -57,11 +58,14 @@ const ChatRoomScreen = () => {
 
   // Load initial messages and set up socket listeners
   useEffect(() => {
-    loadMessages();
-    setupSocketListeners();
-    
-    // Join the room
-    socketService.joinRoom(roomId);
+    const initializeChat = async () => {
+      await loadMessages();
+      await loadParticipants();
+      setupSocketListeners();
+      socketService.joinRoom(roomId);
+    };
+
+    initializeChat();
     
     // Clean up on unmount
     return () => {
@@ -80,6 +84,15 @@ const ChatRoomScreen = () => {
       console.error('Error loading messages:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadParticipants = async () => {
+    try {
+      const roomDetails = await chatService.getChatRoomDetails(roomId);
+      setParticipants(roomDetails.participants);
+    } catch (error) {
+      console.error('Error loading participants:', error);
     }
   };
 
@@ -138,12 +151,16 @@ const ChatRoomScreen = () => {
 
   const renderMessage = ({ item }: { item: Message }) => {
     const isOwnMessage = item.senderId === user?.id;
+    const sender = participants.find(p => p.id === item.senderId);
     
     return (
       <View style={[
         styles.messageContainer,
         isOwnMessage ? styles.ownMessageContainer : styles.otherMessageContainer
       ]}>
+        {!isOwnMessage && sender && (
+          <Text style={styles.senderName}>{sender.name}</Text>
+        )}
         <View style={[
           styles.messageBubble,
           isOwnMessage ? styles.ownMessageBubble : styles.otherMessageBubble
@@ -333,6 +350,12 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 13,
     color: '#666',
+  },
+  senderName: {
+    fontSize: 12,
+    color: '#888',
+    marginBottom: 4,
+    marginLeft: 5,
   },
 });
 

@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
+  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { chatService } from '../services/chat.service';
@@ -55,7 +56,7 @@ const NewChatScreen = () => {
       // Use the correct method to create a direct chat room
       const chatRoom = await chatService.createDirectChatRoom(user.id);
       // Navigate back to chat tab first, then to the chat room
-      navigation.navigate('Chat' as never);
+      navigation.navigate('Main', { screen: 'Chat' });
       // Small delay to ensure navigation completes
       setTimeout(() => {
         navigation.navigate('ChatRoom', { roomId: chatRoom.id, title: `Chat with ${user.name}` });
@@ -67,8 +68,14 @@ const NewChatScreen = () => {
 
   const renderUser = ({ item }: { item: User }) => (
     <TouchableOpacity style={styles.userItem} onPress={() => handleUserPress(item)}>
-      <Text style={styles.userName}>{item.name}</Text>
-      <Text style={styles.userEmail}>{item.email}</Text>
+      <Image
+        source={{ uri: item.profilePicture }}
+        style={styles.userImage}
+      />
+      <View>
+        <Text style={styles.userName}>{item.name}</Text>
+        <Text style={styles.userEmail}>{item.email}</Text>
+      </View>
     </TouchableOpacity>
   );
 
@@ -131,9 +138,17 @@ const styles = StyleSheet.create({
     borderBottomColor: '#ddd',
   },
   userItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
+  },
+  userImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 15,
   },
   userName: {
     fontSize: 18,

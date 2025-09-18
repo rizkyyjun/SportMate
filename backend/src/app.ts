@@ -75,6 +75,16 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Temporary logging middleware for event creation
+app.use('/api/events', (req, res, next) => {
+  if (req.method === 'POST') {
+    console.log('App.ts: Incoming POST /api/events request.');
+    console.log('App.ts: Request Headers:', req.headers);
+    console.log('App.ts: Request Body (after parsing):', req.body);
+  }
+  next();
+});
+
 // Set up routes
 app.use('/api/auth', authRoutes);
 app.use('/api/fields', fieldRoutes);

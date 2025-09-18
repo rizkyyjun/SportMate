@@ -25,7 +25,7 @@ export const getTeammateRequests = async (req: Request, res: Response, next: Nex
       query = query.andWhere('request.date = :date', { date });
     }
 
-    const requests = await query.getMany();
+    const requests = await query.orderBy('request.createdAt', 'DESC').getMany();
     res.json(requests);
   } catch (error) {
     next(error);
@@ -51,7 +51,7 @@ export const getTeammateRequestById = async (req: Request, res: Response, next: 
   try {
     const request = await teammateRequestRepository.findOne({
       where: { id: req.params.id },
-      relations: ['creator', 'participants', 'participants.user', 'chatRoom']
+      relations: ['creator', 'participants', 'participants.user', 'chatRoom', 'chatRoom.participants']
     });
 
     if (!request) {
@@ -82,8 +82,12 @@ export const createTeammateRequest = async (req: Request, res: Response, next: N
     // Create chat room for the request
     const chatRoom = chatRoomRepository.create({
       type: ChatRoomType.TEAMMATE,
-      name: `${sport} - ${requestDate} ${requestTime}`
+      name: `${sport} - ${requestDate} ${requestTime}`,
     });
+    await chatRoomRepository.save(chatRoom);
+
+    // Add creator as a participant
+    chatRoom.participants = [req.user!];
     await chatRoomRepository.save(chatRoom);
 
     // Create teammate request
@@ -211,7 +215,7 @@ export const updateParticipantStatus = async (req: Request, res: Response, next:
 
     const request = await teammateRequestRepository.findOne({
       where: { id: requestId },
-      relations: ['creator']
+      relations: ['creator', 'chatRoom', 'chatRoom.participants']
     });
 
     if (!request) {
@@ -224,7 +228,8 @@ export const updateParticipantStatus = async (req: Request, res: Response, next:
     }
 
     const participant = await participantRepository.findOne({
-      where: { id: participantId }
+      where: { id: participantId },
+      relations: ['user']
     });
 
     if (!participant) {
@@ -233,6 +238,17 @@ export const updateParticipantStatus = async (req: Request, res: Response, next:
 
     participant.status = status;
     await participantRepository.save(participant);
+
+    // If participant is approved, add them to the chat room
+    if (status === ParticipantStatus.APPROVED) {
+      if (request.chatRoom && participant.user) {
+        // Add participant only if they are not already in the chat room
+        if (!request.chatRoom.participants.some(p => p.id === participant.user.id)) {
+          request.chatRoom.participants.push(participant.user);
+          await chatRoomRepository.save(request.chatRoom);
+        }
+      }
+    }
 
     // Re-fetch and save the TeammateRequest to ensure relations are updated
     const updatedRequest = await teammateRequestRepository.findOne({

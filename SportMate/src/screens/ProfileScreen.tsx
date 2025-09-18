@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
@@ -28,6 +28,12 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
       <View style={styles.content}>
         {user ? (
           <>
+            <View style={styles.profilePictureContainer}>
+              <Image
+                source={{ uri: user.profilePicture }}
+                style={styles.profilePicture}
+              />
+            </View>
             <View style={styles.profileInfo}>
               <Text style={styles.label}>Name:</Text>
               <Text style={styles.value}>{user.name}</Text>
@@ -37,13 +43,6 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
               <Text style={styles.label}>Email:</Text>
               <Text style={styles.value}>{user.email}</Text>
             </View>
-            
-            {user.profilePicture && (
-              <View style={styles.profileInfo}>
-                <Text style={styles.label}>Profile Picture:</Text>
-                <Text style={styles.value}>{user.profilePicture}</Text>
-              </View>
-            )}
             
             {user.isAdmin && (
               <View style={styles.profileInfo}>
@@ -68,6 +67,10 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
             <Text style={styles.adminLinkButtonText}>Booking Review</Text>
           </TouchableOpacity>
         )}
+
+        <TouchableOpacity style={styles.editProfileButton} onPress={() => navigation.navigate('EditProfile')}>
+          <Text style={styles.editProfileButtonText}>Edit Profile</Text>
+        </TouchableOpacity>
         
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Text style={styles.logoutButtonText}>Logout</Text>
@@ -155,6 +158,27 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   adminLinkButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  profilePictureContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  profilePicture: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+  },
+  editProfileButton: {
+    backgroundColor: '#007bff',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  editProfileButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',

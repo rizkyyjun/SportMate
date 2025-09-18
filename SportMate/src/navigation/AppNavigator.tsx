@@ -26,6 +26,7 @@ import TeammateDetailsScreen from '../screens/TeammateDetailsScreen';
 import TeammateRequestScreen from '../screens/TeammateRequestScreen';
 import NewChatScreen from '../screens/NewChatScreen';
 import CreateFieldScreen from '../screens/CreateFieldScreen'; // Import the CreateFieldScreen
+import EditProfileScreen from '../screens/EditProfileScreen';
 
 
 import { AuthStackParamList } from './AuthNavigator';
@@ -188,6 +189,11 @@ const AppNavigator = () => {
         name="AdminBookingReview" 
         component={AdminBookingReviewScreen} 
         options={{ headerShown: true, title: 'Booking Review' }}
+      />
+      <Stack.Screen 
+        name="EditProfile" 
+        component={EditProfileScreen} 
+        options={{ headerShown: true, title: 'Edit Profile' }}
       />
     </Stack.Navigator>
   );

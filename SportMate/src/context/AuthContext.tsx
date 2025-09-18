@@ -10,6 +10,7 @@ export interface AuthContextType {
   login: (token: string, userData: User) => Promise<void>; // Modified login to accept user data
   logout: () => void;
   isLoading: boolean;
+  updateUser: (data: { name?: string; profilePicture?: string }) => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -77,8 +78,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateUser = async (data: { name?: string; profilePicture?: string }) => {
+    try {
+      const response = await api.put('/users/profile', data);
+      setUser(response.data);
+    } catch (error) {
+      console.error('Failed to update user:', error);
+      throw error;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ userToken, user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ userToken, user, login, logout, isLoading, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

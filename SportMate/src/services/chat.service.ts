@@ -26,6 +26,17 @@ export const chatService = {
     }
   },
 
+  // Get chat room details by ID
+  getChatRoomDetails: async (roomId: string): Promise<ChatRoom> => {
+    try {
+      const response = await api.get(`/chat/rooms/${roomId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching details for chat room ${roomId}:`, error);
+      throw error;
+    }
+  },
+
   // Get messages for a specific chat room
   getChatRoomMessages: async (roomId: string, before?: string, limit: number = 50): Promise<Message[]> => {
     try {

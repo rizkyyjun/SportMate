@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.middleware';
 import {
   getChatRooms,
+  getChatRoomDetails,
   getChatRoomMessages,
   createChatRoom,
   createDirectChatRoom,
@@ -16,6 +17,9 @@ router.use(authMiddleware);
 
 // Get all chat rooms for the authenticated user
 router.get('/rooms', getChatRooms);
+
+// Get chat room details by ID
+router.get('/rooms/:roomId', getChatRoomDetails);
 
 // Create a general chat room
 router.post('/rooms', createChatRoom);

@@ -1,37 +1,82 @@
 import { Request, Response, NextFunction } from 'express';
-import { In } from 'typeorm'; // Import In
+import { In } from 'typeorm';
 import { AppDataSource } from '../config/data-source';
 import { ChatRoom, ChatRoomType } from '../models/chat-room.entity';
 import { Message } from '../models/message.entity';
 import { User } from '../models/user.entity';
+import { TeammateRequest } from '../models/teammate-request.entity';
 
 const chatRoomRepository = AppDataSource.getRepository(ChatRoom);
 const messageRepository = AppDataSource.getRepository(Message);
 const userRepository = AppDataSource.getRepository(User);
+const teammateRequestRepository = AppDataSource.getRepository(TeammateRequest);
 
 // Get all chat rooms for the authenticated user
 export const getChatRooms = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const chatRooms = await chatRoomRepository
+
+    // Get chat rooms where the user is a participant
+    const participantChatRooms = await chatRoomRepository
       .createQueryBuilder('chatRoom')
       .leftJoin('chatRoom.participants', 'participant')
       .where('participant.id = :userId', { userId })
       .getMany();
 
-    // Now load full relations for these chat rooms
-    const chatRoomIds = chatRooms.map(room => room.id);
-    const fullChatRooms = await chatRoomRepository.find({
-      where: { id: In(chatRoomIds) },
-      relations: ['participants', 'messages'],
-      order: {
-        messages: {
-          createdAt: 'DESC',
-        },
-      },
+    // Get chat rooms from teammate requests created by the user
+    const createdTeammateRequests = await teammateRequestRepository.find({
+      where: { creator: { id: userId } },
+      relations: ['chatRoom'],
     });
 
-    res.json(fullChatRooms);
+    const creatorChatRoomIds = createdTeammateRequests
+      .map(request => request.chatRoom?.id)
+      .filter((id): id is string => !!id);
+
+    const participantChatRoomIds = participantChatRooms.map(room => room.id);
+
+    // Combine and deduplicate chat room IDs
+    const allChatRoomIds = [...new Set([...participantChatRoomIds, ...creatorChatRoomIds])];
+
+    if (allChatRoomIds.length === 0) {
+      return res.json([]);
+    }
+
+    const fullChatRooms = await chatRoomRepository.find({
+      where: { id: In(allChatRoomIds) },
+      relations: ['participants', 'messages', 'messages.sender'],
+    });
+
+    // Sort chat rooms by the timestamp of the last message
+    fullChatRooms.sort((a, b) => {
+      const lastMessageA = a.messages.length > 0 ? new Date(a.messages.reduce((prev, current) => (new Date(prev.createdAt) > new Date(current.createdAt)) ? prev : current).createdAt).getTime() : new Date(a.createdAt).getTime();
+      const lastMessageB = b.messages.length > 0 ? new Date(b.messages.reduce((prev, current) => (new Date(prev.createdAt) > new Date(current.createdAt)) ? prev : current).createdAt).getTime() : new Date(b.createdAt).getTime();
+      return lastMessageB - lastMessageA;
+    });
+
+    // Filter out null or undefined values
+    const validChatRooms = fullChatRooms.filter(room => room);
+
+    res.json(validChatRooms);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get chat room details by ID
+export const getChatRoomDetails = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { roomId } = req.params;
+    const chatRoom = await chatRoomRepository.findOne({
+      where: { id: roomId },
+      relations: ['participants'],
+    });
+
+    if (!chatRoom) {
+      return res.status(404).json({ message: 'Chat room not found' });
+    }
+
+    res.json(chatRoom);
   } catch (error) {
     next(error);
   }

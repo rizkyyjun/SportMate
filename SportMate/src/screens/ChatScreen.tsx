@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,9 +7,10 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { AuthContext } from '../context/AuthContext';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { chatService } from '../services/chat.service';
 import { ChatRoom, User } from '../types';
 
@@ -22,11 +23,13 @@ const ChatScreen = () => {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (user) {
-      loadChatRooms(user.id);
-    }
-  }, [user]); // Add user to dependency array to log when it's available
+  useFocusEffect(
+    useCallback(() => {
+      if (user) {
+        loadChatRooms(user.id);
+      }
+    }, [user])
+  );
 
   const loadChatRooms = async (currentUserId: string) => {
     try {
@@ -72,8 +75,8 @@ const ChatScreen = () => {
     }
     
     // Get the latest message
-    const latestMessage = item.messages.length > 0 
-      ? item.messages[item.messages.length - 1] 
+    const latestMessage = item.messages.length > 0
+      ? item.messages.reduce((prev, current) => (new Date(prev.createdAt) > new Date(current.createdAt)) ? prev : current)
       : null;
     
     return (
@@ -85,6 +88,10 @@ const ChatScreen = () => {
           otherParticipant: otherParticipantForRoom // Pass the pre-processed otherParticipant
         })}
       >
+        <Image
+          source={{ uri: otherParticipantForRoom?.profilePicture }}
+          style={styles.chatItemImage}
+        />
         <View style={styles.chatItemContent}>
           <View style={styles.chatInfo}>
             <Text style={styles.chatName}>{chatRoomTitle}</Text>
@@ -93,13 +100,13 @@ const ChatScreen = () => {
             )}
             {latestMessage && (
               <Text style={styles.lastMessage} numberOfLines={1}>
-                {latestMessage.senderId === user?.id ? 'You: ' : ''}{latestMessage.content}
+                {latestMessage.sender?.id === user?.id ? 'You: ' : ''}{latestMessage.content}
               </Text>
             )}
           </View>
           {latestMessage && (
             <Text style={styles.timestamp}>
-              {new Date(latestMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {new Date(latestMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </Text>
           )}
         </View>
@@ -216,6 +223,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  chatItemImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 15,
   },
   chatItemContent: {
     flexDirection: 'row',

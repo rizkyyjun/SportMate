@@ -74,7 +74,7 @@ export interface TeammateRequest {
   isActive: boolean;
   requiredParticipants: number;
   participants: TeammateParticipant[];
-  chatRoomId?: string;
+  chatRoom?: ChatRoom;
 }
 
 export interface TeammateParticipant {
@@ -104,8 +104,9 @@ export interface Event {
   maxParticipants: number;
   isActive: boolean;
   organizerId: string;
+  organizer?: User; // Add organizer user object
   participants: EventParticipant[];
-  chatRoomId?: string | null;
+  chatRoom?: ChatRoom | null;
 }
 
 export interface EventParticipant {
@@ -114,6 +115,7 @@ export interface EventParticipant {
   eventId: string;
   isAttending: boolean;
   notes?: string;
+  user: User; // Added user relation
 }
 
 // Chat types
@@ -139,4 +141,6 @@ export interface Message {
   roomId: string;
   timestamp: string;
   isRead: boolean;
+  createdAt: string;
+  sender?: User;
 }

@@ -79,8 +79,14 @@ const EventListScreen: React.FC<EventListScreenProps> = ({ navigation }) => {
         <Text style={styles.participants}>
           {item.participants.length}/{item.maxParticipants} participants
         </Text>
-        {item.organizerId === user?.id && (
-          <Text style={styles.organizer}>You're the organizer</Text>
+        {item.organizer ? (
+          item.organizer.id === user?.id ? (
+            <Text style={styles.organizer}>You're the organizer</Text>
+          ) : (
+            <Text style={styles.organizer}>Organizer: {item.organizer.name}</Text>
+          )
+        ) : (
+          <Text style={styles.organizer}>Organizer: N/A</Text>
         )}
       </View>
     </TouchableOpacity>

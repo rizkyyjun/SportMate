@@ -31,6 +31,7 @@ export const getEvents = async (req: Request, res: Response, next: NextFunction)
     }
 
     const [events, total] = await query
+      .orderBy('event.createdAt', 'DESC')
       .skip((parsedPage - 1) * parsedLimit)
       .take(parsedLimit)
       .getManyAndCount();
@@ -82,32 +83,63 @@ export const getEventById = async (req: Request, res: Response, next: NextFuncti
   // Create event
   export const createEvent = async (req: Request, res: Response, next: NextFunction) => {
     try {
+      console.log('createEvent: Function entered.');
+      console.log('createEvent: Raw req.body:', req.body);
+      console.log('createEvent: req.user:', req.user);
+
       const { title, description, sport, location, date, time, dateTime, maxParticipants, fieldId } = req.body;
+      console.log('createEvent: Destructured request body:', { title, description, sport, location, date, time, dateTime, maxParticipants, fieldId });
 
       if (!req.user) {
+        console.warn('createEvent: Unauthorized attempt to create event.');
         return res.status(401).json({ message: 'Unauthorized' });
       }
 
-      // Handle dateTime field from frontend (if provided)
+      // Use date and time directly from req.body if available, otherwise parse dateTime
       let eventDate = date;
       let eventTime = time;
-      
-      if (dateTime) {
+
+      if (dateTime && !date && !time) { // Only parse dateTime if date and time are not explicitly provided
         const dateObj = new Date(dateTime);
+        if (isNaN(dateObj.getTime())) {
+          console.error('createEvent: Invalid dateTime provided:', dateTime);
+          return res.status(400).json({ message: 'Invalid date and time format.' });
+        }
+        // Extract date in YYYY-MM-DD format (UTC)
         eventDate = dateObj.toISOString().split('T')[0];
-        eventTime = dateObj.toTimeString().split(':')[0] + ':' + dateObj.toTimeString().split(':')[1];
+        // Extract time in HH:MM format (UTC)
+        eventTime = dateObj.getUTCHours().toString().padStart(2, '0') + ':' + dateObj.getUTCMinutes().toString().padStart(2, '0');
+      } else if (date && time) {
+        // If date and time are explicitly provided, use them directly
+        eventDate = date;
+        eventTime = time;
+      } else {
+        // If neither dateTime nor explicit date/time are sufficient, return error
+        return res.status(400).json({ message: 'Date and time are required.' });
       }
+      console.log('createEvent: Final eventDate:', eventDate, 'eventTime:', eventTime);
 
       // Find the field if fieldId is provided
       let field = null;
       if (fieldId) {
         field = await fieldRepository.findOneBy({ id: fieldId });
         if (!field) {
+          console.warn('createEvent: Field not found for ID:', fieldId);
           return res.status(404).json({ message: 'Field not found' });
         }
+        console.log('createEvent: Found field:', field.name);
       }
 
-      // Create event without chat room for testing
+      // Create chat room for the event
+      const chatRoom = chatRoomRepository.create({
+        type: ChatRoomType.EVENT,
+        name: title, // Use event title as chat room name
+        participants: [req.user], // Organizer is the first participant
+      });
+      console.log('createEvent: Created chatRoom object:', chatRoom);
+      await chatRoomRepository.save(chatRoom);
+      console.log('createEvent: Saved chatRoom to database.');
+
       const event = eventRepository.create({
         organizer: req.user,
         name: title,
@@ -118,11 +150,19 @@ export const getEventById = async (req: Request, res: Response, next: NextFuncti
         time: eventTime,
         maxParticipants,
         field: field || undefined, // Only set field if it exists
-        isActive: true
+        isActive: true,
+        chatRoom: chatRoom, // Associate the created chat room with the event
       });
+      console.log('createEvent: Created event object:', event);
 
       await eventRepository.save(event);
+      console.log('createEvent: Saved event to database.');
+
+      // Removed adding organizer as an event participant as per user request.
+      // The chat room is already created and associated with the event.
+
       res.status(201).json(event);
+      console.log('createEvent: Event created successfully, response sent.');
     } catch (error) {
       console.error('Error in createEvent controller:', error);
       next(error);
@@ -187,11 +227,16 @@ export const joinEvent = async (req: Request, res: Response, next: NextFunction)
   try {
     const event = await eventRepository.findOne({
       where: { id: req.params.id },
-      relations: ['participants']
+      relations: ['participants', 'organizer', 'chatRoom'] // Include chatRoom relation
     });
 
     if (!event) {
       return res.status(404).json({ message: 'Event not found' });
+    }
+
+    // Prevent organizer from joining their own event
+    if (event.organizer.id === req.user!.id) {
+      return res.status(400).json({ message: 'Event organizer cannot join their own event' });
     }
 
     // Check if user is already a participant
@@ -215,7 +260,27 @@ export const joinEvent = async (req: Request, res: Response, next: NextFunction)
     });
 
     await participantRepository.save(participant);
-    res.status(201).json(participant);
+
+    // Add user to the chat room participants
+    if (event.chatRoom) {
+      const chatRoom = await chatRoomRepository.findOne({
+        where: { id: event.chatRoom.id },
+        relations: ['participants'],
+      });
+      if (chatRoom) {
+        // Add user if not already in the chat room
+        const isUserInChat = chatRoom.participants.some(p => p.id === req.user!.id);
+        if (!isUserInChat) {
+          chatRoom.participants.push(req.user!);
+          await chatRoomRepository.save(chatRoom);
+        }
+      }
+    }
+    
+    res.status(201).json({
+      message: 'Successfully joined the event.',
+      participant,
+    });
   } catch (error) {
     next(error);
   }
