@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
+  FlatList,
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
@@ -55,7 +57,7 @@ const EventCreationScreen: React.FC<EventCreationScreenProps> = ({ navigation })
   useEffect(() => {
     const fetchFields = async () => {
       try {
-        const fetchedFieldsResponse = await fieldService.getFields(1, 1000); // Fetch all fields for the picker
+        const fetchedFieldsResponse = await fieldService.getFields(1, 1000);
         setFields(fetchedFieldsResponse.data);
         if (fetchedFieldsResponse.data.length > 0) {
           setSelectedFieldId(fetchedFieldsResponse.data[0].id);
@@ -89,12 +91,12 @@ const EventCreationScreen: React.FC<EventCreationScreenProps> = ({ navigation })
       setLoading(true);
       setError(null);
 
-      const dateTime = `${date}T${time}:00.000Z`; // ISO format
+      const dateTime = `${date}T${time}:00.000Z`;
 
       await eventService.createEvent({
         title: name,
         sport,
-        location, // Add location here
+        location,
         fieldId: selectedFieldId,
         dateTime,
         maxParticipants: parsedMaxParticipants,
@@ -102,62 +104,37 @@ const EventCreationScreen: React.FC<EventCreationScreenProps> = ({ navigation })
       });
 
       navigation.goBack();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to create event:', err);
-      setError('Failed to create event. Please try again.');
+      setError(err.message || 'Failed to create event. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const markedDates = useMemo(() => {
-    return {
-      [date]: {
-        selected: true,
-        selectedColor: '#0066cc',
-      },
-    };
-  }, [date]);
+  const markedDates = useMemo(() => ({
+    [date]: {
+      selected: true,
+      selectedColor: '#0066cc',
+    },
+  }), [date]);
 
-  return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Create Event</Text>
+  const formFields = [
+    { key: 'name', label: 'Event Name', placeholder: 'Enter event name', value: name, setter: setName },
+    { key: 'sport', label: 'Sport', placeholder: 'e.g., Soccer, Basketball, Tennis', value: sport, setter: setSport },
+    { key: 'location', label: 'Location', placeholder: 'Enter location', value: location, setter: setLocation },
+    { key: 'field', label: 'Field' },
+    { key: 'date', label: 'Date' },
+    { key: 'time', label: 'Time', placeholder: 'HH:MM', value: time, setter: setTime },
+    { key: 'maxParticipants', label: 'Maximum Participants', placeholder: 'Enter maximum number of participants', value: maxParticipants, setter: setMaxParticipants, keyboardType: 'numeric' },
+    { key: 'description', label: 'Description', placeholder: 'Describe your event...', value: description, setter: setDescription, multiline: true },
+  ];
 
-        {error && <Text style={styles.errorText}>{error}</Text>}
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Event Name</Text>
-          <TextInput
-            style={styles.input}
-            value={name}
-            onChangeText={setName}
-            placeholder="Enter event name"
-          />
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Sport</Text>
-          <TextInput
-            style={styles.input}
-            value={sport}
-            onChangeText={setSport}
-            placeholder="e.g., Soccer, Basketball, Tennis"
-          />
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Location</Text>
-          <TextInput
-            style={styles.input}
-            value={location}
-            onChangeText={setLocation}
-            placeholder="Enter location"
-          />
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Field</Text>
+  const renderItem = useCallback(({ item }: { item: any }) => {
+    return (
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>{item.label}</Text>
+        {item.key === 'field' ? (
           <View style={styles.pickerContainer}>
             <Picker
               selectedValue={selectedFieldId}
@@ -169,10 +146,7 @@ const EventCreationScreen: React.FC<EventCreationScreenProps> = ({ navigation })
               ))}
             </Picker>
           </View>
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Date</Text>
+        ) : item.key === 'date' ? (
           <Calendar
             current={date}
             minDate={format(new Date(), 'yyyy-MM-dd')}
@@ -183,7 +157,6 @@ const EventCreationScreen: React.FC<EventCreationScreenProps> = ({ navigation })
             markedDates={markedDates}
             monthFormat={'MMMM yyyy'}
             hideExtraDays={true}
-            disableAllTouchEventsForDisabledDays={false}
             theme={{
               backgroundColor: '#fff',
               calendarBackground: '#fff',
@@ -193,66 +166,60 @@ const EventCreationScreen: React.FC<EventCreationScreenProps> = ({ navigation })
               todayTextColor: '#0066cc',
               dayTextColor: '#2d4150',
               textDisabledColor: '#d9d9d9',
-              dotColor: '#0066cc',
-              arrowColor: '#0066cc',
-              disabledArrowColor: '#d9d9d9',
             }}
             style={styles.calendar}
           />
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Time</Text>
+        ) : (
           <TextInput
-            style={styles.input}
-            value={time}
-            onChangeText={setTime}
-            placeholder="HH:MM"
+            style={[styles.input, item.multiline && styles.textArea]}
+            value={item.value}
+            onChangeText={item.setter}
+            placeholder={item.placeholder}
+            keyboardType={item.keyboardType || 'default'}
+            multiline={item.multiline}
+            numberOfLines={item.multiline ? 4 : 1}
           />
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Maximum Participants</Text>
-          <TextInput
-            style={styles.input}
-            value={maxParticipants}
-            onChangeText={setMaxParticipants}
-            placeholder="Enter maximum number of participants"
-            keyboardType="numeric"
-          />
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Description</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            value={description}
-            onChangeText={setDescription}
-            placeholder="Describe your event..."
-            multiline
-            numberOfLines={4}
-          />
-        </View>
-
-        <TouchableOpacity
-          style={[styles.createButton, loading && styles.disabledButton]}
-          onPress={handleCreateEvent}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.createButtonText}>Create Event</Text>
-          )}
-        </TouchableOpacity>
+        )}
       </View>
-    </ScrollView>
+    );
+  }, [selectedFieldId, fields, date, markedDates, name, sport, location, time, maxParticipants, description]);
+
+  return (
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <FlatList
+        data={formFields}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.key}
+        ListHeaderComponent={
+          <>
+            <Text style={styles.title}>Create Event</Text>
+            {error && <Text style={styles.errorText}>{error}</Text>}
+          </>
+        }
+        ListFooterComponent={
+          <TouchableOpacity
+            style={[styles.createButton, loading && styles.disabledButton]}
+            onPress={handleCreateEvent}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.createButtonText}>Create Event</Text>
+            )}
+          </TouchableOpacity>
+        }
+        contentContainerStyle={styles.content}
+      />
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
-  content: { padding: 20 },
+  content: { padding: 20, backgroundColor: '#f5f5f5' },
   title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
   inputGroup: { marginBottom: 15 },
   label: { fontSize: 16, fontWeight: '500', marginBottom: 5, color: '#333' },

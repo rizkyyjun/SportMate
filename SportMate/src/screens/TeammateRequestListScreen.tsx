@@ -61,7 +61,12 @@ const TeammateRequestListScreen: React.FC<TeammateRequestListScreenProps> = ({ n
           {item.requiredParticipants - item.participants.filter(p => p.status === 'approved').length} spots left
         </Text>
       </View>
-
+      {item.creator && (
+        <View style={styles.creatorInfo}>
+          <Text style={styles.creatorName}>Created by: {item.creator.name}</Text>
+          <Text style={styles.creatorEmail}>{item.creator.email}</Text>
+        </View>
+      )}
       <Text style={styles.location}>{item.location}</Text>
       <Text style={styles.dateTime}>
         {item.date} at {item.time}
@@ -183,6 +188,18 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  creatorInfo: {
+    marginBottom: 5,
+  },
+  creatorName: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#555',
+  },
+  creatorEmail: {
+    fontSize: 12,
+    color: '#777',
   },
 });
 

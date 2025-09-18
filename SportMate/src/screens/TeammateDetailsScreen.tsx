@@ -130,8 +130,8 @@ const TeammateDetailsScreen: React.FC<TeammateDetailsScreenProps> = ({
     );
   }
 
-  const isCreator = user?.id === request.creator?.id; // Changed from request.creatorId to request.creator?.id
-  const userParticipant = request.participants.find(p => p.userId === user?.id);
+  const isCreator = user?.id === request.creator?.id;
+  const userParticipant = request.participants.find(p => p.user?.id === user?.id); // Corrected to p.user?.id
   const isParticipant = !!userParticipant;
   const spotsLeft = request.requiredParticipants - request.participants.filter(p => p.status === ParticipantStatus.APPROVED).length;
 
@@ -149,6 +149,14 @@ const TeammateDetailsScreen: React.FC<TeammateDetailsScreenProps> = ({
           {format(new Date(request.date), 'PPP')} at {request.time}
         </Text>
 
+        {request.creator && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Creator Details</Text>
+            <Text style={styles.creatorName}>Name: {request.creator.name}</Text>
+            <Text style={styles.creatorEmail}>Email: {request.creator.email}</Text>
+          </View>
+        )}
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Description</Text>
           <Text style={styles.description}>{request.description}</Text>
@@ -163,7 +171,7 @@ const TeammateDetailsScreen: React.FC<TeammateDetailsScreenProps> = ({
                 <View key={participant.id} style={styles.participant}>
                 <View>
                   <Text style={styles.participantName}>
-                    User {participant.user?.name || participant.userId}{' '}
+                    {participant.user?.name || participant.userId}{' '}
                     <Text style={getParticipantStatusStyle(participant.status)}>
                       {participant.status.charAt(0).toUpperCase() + participant.status.slice(1)}
                     </Text>
@@ -300,6 +308,16 @@ const styles = StyleSheet.create({
   participantMessage: {
     fontSize: 14,
     color: '#666',
+  },
+  creatorName: {
+    fontSize: 16,
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  creatorEmail: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
   },
   status: { // Added base status style
     paddingHorizontal: 8,

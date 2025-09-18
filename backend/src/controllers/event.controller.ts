@@ -79,55 +79,55 @@ export const getEventById = async (req: Request, res: Response, next: NextFuncti
   }
 };
 
-// Create event
-export const createEvent = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { title, description, sport, location, date, time, dateTime, maxParticipants, fieldId } = req.body; // Changed 'name' to 'title'
+  // Create event
+  export const createEvent = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { title, description, sport, location, date, time, dateTime, maxParticipants, fieldId } = req.body;
 
-    // Handle dateTime field from frontend (if provided)
-    let eventDate = date;
-    let eventTime = time;
-    
-    if (dateTime) {
-      const dateObj = new Date(dateTime);
-      eventDate = dateObj.toISOString().split('T')[0];
-      eventTime = dateObj.toTimeString().split(':')[0] + ':' + dateObj.toTimeString().split(':')[1];
+      if (!req.user) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      // Handle dateTime field from frontend (if provided)
+      let eventDate = date;
+      let eventTime = time;
+      
+      if (dateTime) {
+        const dateObj = new Date(dateTime);
+        eventDate = dateObj.toISOString().split('T')[0];
+        eventTime = dateObj.toTimeString().split(':')[0] + ':' + dateObj.toTimeString().split(':')[1];
+      }
+
+      // Find the field if fieldId is provided
+      let field = null;
+      if (fieldId) {
+        field = await fieldRepository.findOneBy({ id: fieldId });
+        if (!field) {
+          return res.status(404).json({ message: 'Field not found' });
+        }
+      }
+
+      // Create event without chat room for testing
+      const event = eventRepository.create({
+        organizer: req.user,
+        name: title,
+        description,
+        sport,
+        location,
+        date: eventDate,
+        time: eventTime,
+        maxParticipants,
+        field: field || undefined, // Only set field if it exists
+        isActive: true
+      });
+
+      await eventRepository.save(event);
+      res.status(201).json(event);
+    } catch (error) {
+      console.error('Error in createEvent controller:', error);
+      next(error);
     }
-
-    // Find the field
-    const field = await fieldRepository.findOneBy({ id: fieldId });
-    if (!field) {
-      return res.status(404).json({ message: 'Field not found' });
-    }
-
-    // Create chat room for the event
-    const chatRoom = chatRoomRepository.create({
-      type: ChatRoomType.EVENT,
-      name: title // Use 'title' for chat room name
-    });
-    await chatRoomRepository.save(chatRoom);
-
-    // Create event
-    const event = eventRepository.create({
-      organizer: req.user,
-      name: title, // Use 'title' for event name
-      description,
-      sport,
-      location,
-      date: eventDate,
-      time: eventTime,
-      maxParticipants,
-      chatRoom,
-      field, // Associate the field with the event
-      isActive: true
-    });
-
-    await eventRepository.save(event);
-    res.status(201).json(event);
-  } catch (error) {
-    next(error);
-  }
-};
+  };
 
 // Update event
 export const updateEvent = async (req: Request, res: Response, next: NextFunction) => {

@@ -49,7 +49,7 @@ export class Event {
 
   @ManyToOne(() => ChatRoom, chatRoom => chatRoom.events, { nullable: true })
   @JoinColumn({ name: 'chat_room_id' })
-  chatRoom: ChatRoom;
+  chatRoom: ChatRoom | null;
 
   @ManyToOne(() => Field, field => field.events, { nullable: true })
   @JoinColumn({ name: 'field_id' })

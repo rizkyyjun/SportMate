@@ -97,7 +97,7 @@ export const getFieldBookingsForUser = async (req: Request, res: Response, next:
 };
 
 // Helper function to calculate field availability
-const calculateFieldAvailability = (field: any) => {
+const calculateFieldAvailability = (field: Field) => {
   const availability: any[] = [];
   const today = new Date();
   
@@ -114,7 +114,6 @@ const calculateFieldAvailability = (field: any) => {
       { startTime: '11:00', endTime: '12:00' },
       { startTime: '12:00', endTime: '13:00' },
       { startTime: '13:00', endTime: '14:00' },
-      { startTime: '13:00', endTime: '14:00' },
       { startTime: '14:00', endTime: '15:00' },
       { startTime: '15:00', endTime: '16:00' },
       { startTime: '16:00', endTime: '17:00' },
@@ -126,9 +125,9 @@ const calculateFieldAvailability = (field: any) => {
     ];
     
     // Get bookings for this date (include both confirmed and pending bookings)
-    const bookingsForDate = field.bookings?.filter((booking: any) => 
+    const bookingsForDate = Array.isArray(field.bookings) ? field.bookings.filter((booking: any) => 
       booking.date === dateString && (booking.status === 'confirmed' || booking.status === 'pending')
-    ) || [];
+    ) : [];
     
     // Create time slots and mark booked ones
     const slots = operatingHours.map((hour, index) => {

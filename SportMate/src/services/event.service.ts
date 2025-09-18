@@ -29,8 +29,8 @@ export const eventService = {
   createEvent: async (eventData: {
     title: string;
     sport: string;
-    location: string; // Added location
-    fieldId: string;
+    location: string;
+    fieldId?: string; // Make fieldId optional
     dateTime: string;
     maxParticipants: number;
     description: string;
@@ -38,9 +38,20 @@ export const eventService = {
     try {
       const response = await api.post('/events', eventData);
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating event:', error);
-      throw error;
+      // Enhanced error handling with specific messages
+      if (error.response) {
+        // Server responded with error
+        const message = error.response.data?.message || 'Failed to create event';
+        throw new Error(message);
+      } else if (error.request) {
+        // Request made but no response
+        throw new Error('Server not responding. Please try again.');
+      } else {
+        // Request setup error
+        throw new Error('Failed to send request. Please check your connection.');
+      }
     }
   },
 

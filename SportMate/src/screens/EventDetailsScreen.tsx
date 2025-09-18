@@ -137,16 +137,18 @@ const EventDetailsScreen: React.FC<EventDetailsScreenProps> = ({ navigation, rou
                 </TouchableOpacity>
               </>
             ) : (
-              <TouchableOpacity
-                style={[
-                  styles.joinButton,
-                  event.participants.length >= event.maxParticipants && styles.disabledButton,
-                ]}
-                onPress={handleJoinEvent}
-                disabled={event.participants.length >= event.maxParticipants}
-              >
-                <Text style={styles.buttonText}>Join Event</Text>
-              </TouchableOpacity>
+              user.id !== event.organizerId && (
+                <TouchableOpacity
+                  style={[
+                    styles.joinButton,
+                    event.participants.length >= event.maxParticipants && styles.disabledButton,
+                  ]}
+                  onPress={handleJoinEvent}
+                  disabled={event.participants.length >= event.maxParticipants}
+                >
+                  <Text style={styles.buttonText}>Join Event</Text>
+                </TouchableOpacity>
+              )
             )}
           </View>
         )}

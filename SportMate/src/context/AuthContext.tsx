@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from '../services/api';
 import { User } from '../types';
+import { socketService } from '../services/socket.service';
 
 export interface AuthContextType {
   userToken: string | null;
@@ -37,7 +38,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const token = await AsyncStorage.getItem('token');
         if (token) {
           setUserToken(token);
-          await fetchUser(token); // Fetch user data if token exists
+          await fetchUser(token);
+          socketService.connect(token); // Connect socket on initial auth check
         }
       } catch (error) {
         console.error('Failed to check auth status:', error);
@@ -55,7 +57,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUserToken(token);
       setUser(userData);
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      api.defaults.headers.common['x-user-id'] = userData.id; // Set x-user-id on login
+      api.defaults.headers.common['x-user-id'] = userData.id;
+      socketService.connect(token); // Connect socket on login
     } catch (error) {
       console.error('Failed to save token or user data:', error);
     }
@@ -67,7 +70,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(null);
       setUserToken(null);
       delete api.defaults.headers.common['Authorization'];
-      delete api.defaults.headers.common['x-user-id']; // Clear x-user-id on logout
+      delete api.defaults.headers.common['x-user-id'];
+      socketService.disconnect(); // Disconnect socket on logout
     } catch (error) {
       console.error('Failed to remove token:', error);
     }

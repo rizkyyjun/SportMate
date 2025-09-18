@@ -105,7 +105,7 @@ export interface Event {
   isActive: boolean;
   organizerId: string;
   participants: EventParticipant[];
-  chatRoomId?: string;
+  chatRoomId?: string | null;
 }
 
 export interface EventParticipant {

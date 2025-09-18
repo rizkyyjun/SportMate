@@ -23,18 +23,16 @@ const ChatScreen = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadChatRooms();
-    console.log('ChatScreen: Current user:', user); // Debug log
+    if (user) {
+      loadChatRooms(user.id);
+    }
   }, [user]); // Add user to dependency array to log when it's available
 
-  const loadChatRooms = async () => {
+  const loadChatRooms = async (currentUserId: string) => {
     try {
-      if (!user) return;
-      
       setLoading(true);
       setError(null);
-      const rooms = await chatService.getChatRooms();
-      console.log('ChatScreen: Loaded chat rooms:', rooms); // Debug log
+      const rooms = await chatService.getChatRooms(currentUserId);
       setChatRooms(rooms);
     } catch (err) {
       setError('Failed to load chat rooms. Please try again later.');
@@ -47,8 +45,11 @@ const ChatScreen = () => {
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      if (!user) return;
-      const rooms = await chatService.getChatRooms();
+      if (!user) {
+        setRefreshing(false);
+        return;
+      }
+      const rooms = await chatService.getChatRooms(user.id);
       setChatRooms(rooms);
     } catch (err) {
       setError('Failed to refresh chat rooms.');
@@ -59,22 +60,15 @@ const ChatScreen = () => {
 
   const renderChatRoom = ({ item }: { item: ChatRoom }) => {
     // For direct chats, show the other participant's name
-    let displayName = item.name || 'Chat Room';
-    
-    // For direct chats, show the other participant's name and email
-    if (item.type === 'direct' && item.otherParticipant) {
-      displayName = item.otherParticipant.name || 'Unknown User';
-      // You can also display email here if needed, e.g., `${item.otherParticipant.name} (${item.otherParticipant.email})`
+    let chatRoomTitle = item.name || 'Chat Room';
+    let otherParticipantForRoom: User | undefined = item.otherParticipant; // Use the pre-processed otherParticipant
+
+    if (item.type === 'direct' && otherParticipantForRoom) {
+      chatRoomTitle = otherParticipantForRoom.name || otherParticipantForRoom.email || 'Direct Chat';
     } else if (item.type === 'teammate' && item.name) {
-      displayName = `Teammate Chat: ${item.name}`;
+      chatRoomTitle = `Teammate Chat: ${item.name}`;
     } else if (item.type === 'event' && item.name) {
-      displayName = `Event Chat: ${item.name}`;
-    } else if (item.participants && item.participants.length > 0) {
-      // Fallback for other types or if name is missing, show other participant's name
-      const otherParticipant = item.participants.find(participant => participant.id !== user?.id);
-      if (otherParticipant) {
-        displayName = otherParticipant.name || 'Unknown User';
-      }
+      chatRoomTitle = `Event Chat: ${item.name}`;
     }
     
     // Get the latest message
@@ -87,15 +81,15 @@ const ChatScreen = () => {
         style={styles.chatItem}
         onPress={() => navigation.navigate('ChatRoom', { 
           roomId: item.id, 
-          title: displayName, // Keep title for general chat rooms
-          otherParticipant: item.otherParticipant // Pass otherParticipant for direct chats
+          title: chatRoomTitle, // Use the derived chatRoomTitle
+          otherParticipant: otherParticipantForRoom // Pass the pre-processed otherParticipant
         })}
       >
         <View style={styles.chatItemContent}>
           <View style={styles.chatInfo}>
-            <Text style={styles.chatName}>{displayName}</Text>
-            {item.type === 'direct' && item.otherParticipant && (
-              <Text style={styles.chatEmail}>{item.otherParticipant.email}</Text>
+            <Text style={styles.chatName}>{chatRoomTitle}</Text>
+            {otherParticipantForRoom && (
+              <Text style={styles.chatEmail}>{otherParticipantForRoom.email}</Text>
             )}
             {latestMessage && (
               <Text style={styles.lastMessage} numberOfLines={1}>
@@ -126,7 +120,7 @@ const ChatScreen = () => {
     return (
       <View style={styles.centerContainer}>
         <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={loadChatRooms}>
+        <TouchableOpacity style={styles.retryButton} onPress={() => user && loadChatRooms(user.id)}>
           <Text style={styles.retryButtonText}>Retry</Text>
         </TouchableOpacity>
       </View>

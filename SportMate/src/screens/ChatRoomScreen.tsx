@@ -89,7 +89,6 @@ const ChatRoomScreen = () => {
   };
 
   const handleNewMessage = (message: any) => { // Use 'any' temporarily for flexibility
-    console.log('ChatRoomScreen: handleNewMessage called with:', message); // Debug log
     // Ensure message has senderId and roomId properties, extracting from objects if necessary
     const processedMessage: Message = {
       ...message,
@@ -139,7 +138,6 @@ const ChatRoomScreen = () => {
 
   const renderMessage = ({ item }: { item: Message }) => {
     const isOwnMessage = item.senderId === user?.id;
-    console.log('renderMessage:', { messageId: item.id, senderId: item.senderId, currentUserId: user?.id, isOwnMessage }); // Debug log
     
     return (
       <View style={[

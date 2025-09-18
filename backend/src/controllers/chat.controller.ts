@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { In } from 'typeorm'; // Import In
 import { AppDataSource } from '../config/data-source';
 import { ChatRoom, ChatRoomType } from '../models/chat-room.entity';
 import { Message } from '../models/message.entity';
@@ -14,14 +15,23 @@ export const getChatRooms = async (req: Request, res: Response, next: NextFuncti
     const userId = req.user!.id;
     const chatRooms = await chatRoomRepository
       .createQueryBuilder('chatRoom')
-      .leftJoinAndSelect('chatRoom.participants', 'participant')
-      .addSelect(['participant.name', 'participant.email']) // Select name and email
-      .leftJoinAndSelect('chatRoom.messages', 'message')
+      .leftJoin('chatRoom.participants', 'participant')
       .where('participant.id = :userId', { userId })
-      .orderBy('message.createdAt', 'DESC')
       .getMany();
 
-    res.json(chatRooms);
+    // Now load full relations for these chat rooms
+    const chatRoomIds = chatRooms.map(room => room.id);
+    const fullChatRooms = await chatRoomRepository.find({
+      where: { id: In(chatRoomIds) },
+      relations: ['participants', 'messages'],
+      order: {
+        messages: {
+          createdAt: 'DESC',
+        },
+      },
+    });
+
+    res.json(fullChatRooms);
   } catch (error) {
     next(error);
   }
@@ -44,10 +54,9 @@ export const getChatRoomMessages = async (req: Request, res: Response, next: Nex
     }
 
     const messages = await query.getMany();
-    console.log('Messages retrieved for room', roomId, ':', messages); // Debug log
     res.json(messages.reverse()); // Return in chronological order
   } catch (error) {
-    console.error('Error fetching chat room messages:', error); // Debug log
+    console.error('Error fetching chat room messages:', error);
     next(error);
   }
 };
@@ -180,6 +189,13 @@ export const removeParticipantFromChatRoom = async (req: Request, res: Response,
     // Remove participant
     chatRoom.participants = chatRoom.participants.filter(p => p.id !== userId);
     await chatRoomRepository.save(chatRoom);
+
+    // If no participants left, delete the chat room and its messages
+    if (chatRoom.participants.length === 0) {
+      await messageRepository.delete({ room: chatRoom }); // Delete associated messages
+      await chatRoomRepository.remove(chatRoom); // Delete the chat room
+      return res.status(204).send(); // No content to send back
+    }
 
     res.json(chatRoom);
   } catch (error) {

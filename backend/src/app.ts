@@ -87,6 +87,18 @@ app.use('/api/users', userRoutes);
 // Set up error handler
 app.use(errorHandler);
 
+// Add global error handlers for uncaught exceptions and unhandled rejections
+process.on('uncaughtException', (error) => {
+  console.error('UNCAUGHT EXCEPTION:', error);
+  process.exit(1); // Exit the process to avoid unpredictable state
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('UNHANDLED REJECTION:', reason);
+  // Optionally, you can log the promise that was rejected
+  // console.error('Promise:", promise);
+});
+
 // Set up Socket.IO
 setupSocketIO(io);
 

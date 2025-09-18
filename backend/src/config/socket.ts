@@ -22,7 +22,7 @@ export const setupSocketIO = (io: Server) => {
 // Handle sending a message
     socket.on('send_message', async (messageData: any) => {
       try {
-        console.log('Received message data:', messageData); // Debug log
+        console.log('Received message data:', messageData);
         const messageRepository = AppDataSource.getRepository(Message);
         const chatRoomRepository = AppDataSource.getRepository(ChatRoom);
 

@@ -17,11 +17,49 @@ const RootNavigator = () => {
 
   // Connect/disconnect socket based on authentication status
   React.useEffect(() => {
-    if (user && userToken) {
-      socketService.connect(userToken);
-    } else {
-      socketService.disconnect();
-    }
+    let reconnectTimer: NodeJS.Timeout;
+    let isMounted = true;
+    let cleanupListener: (() => void) | undefined;
+
+    const setupSocket = async () => {
+      try {
+        if (user && userToken) {
+          // Only connect if not already connected
+          if (!socketService.isConnected()) {
+            await socketService.connect(userToken);
+          }
+          
+          // Setup reconnection on disconnect
+          const handleDisconnect = () => {
+            if (!isMounted) return;
+            // Try to reconnect after a delay
+            reconnectTimer = setTimeout(async () => {
+              if (isMounted && user && userToken) {
+                await socketService.connect(userToken);
+              }
+            }, 2000);
+          };
+
+          socketService.addListener('disconnect', handleDisconnect);
+          cleanupListener = () => {
+            socketService.removeListener('disconnect', handleDisconnect);
+          };
+        } else {
+          socketService.disconnect();
+        }
+      } catch (error) {
+        console.error('Socket connection error:', error);
+      }
+    };
+
+    setupSocket();
+
+    // Cleanup
+    return () => {
+      isMounted = false;
+      clearTimeout(reconnectTimer);
+      if (cleanupListener) cleanupListener();
+    };
   }, [user, userToken]);
 
   if (isLoading) {

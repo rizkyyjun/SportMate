@@ -3,16 +3,19 @@ import { api } from './api';
 
 export const chatService = {
   // Get all chat rooms for the current user
-  getChatRooms: async (): Promise<ChatRoom[]> => {
+  getChatRooms: async (currentUserId: string): Promise<ChatRoom[]> => {
     try {
       const response = await api.get('/chat/rooms');
       const chatRooms: ChatRoom[] = response.data;
       
       // For direct chat rooms, identify the other participant
       const processedChatRooms = chatRooms.map(room => {
-        if (room.type === 'direct' && room.participants.length === 2) {
-          const otherParticipant = room.participants.find(p => p.id !== (api as any).defaults.headers.common['x-user-id']); // Assuming x-user-id is set for the current user
-          return { ...room, otherParticipant };
+        if (room.type === 'direct') {
+          const otherParticipant = room.participants.find(p => p.id !== currentUserId);
+          // Ensure otherParticipant is always set for direct chats, even if name is missing
+          if (otherParticipant) {
+            return { ...room, otherParticipant: { ...otherParticipant, name: otherParticipant.name || otherParticipant.email } };
+          }
         }
         return room;
       });
